@@ -5,6 +5,32 @@
 
 using namespace sf;
 
+Vector2i mouse_pos; //текущие координаты курсора
+
+void inventory() {
+    RenderWindow i_window(sf::VideoMode(600, 600), L"Инвентарь", Style::Default);
+    CircleShape banan (50);
+    bool nado = false;
+    while (i_window.isOpen()) {
+        Event event;
+        nado = false;
+        while (i_window.pollEvent(event)) {
+            if (event.type == Event::Closed) i_window.close();
+        }
+        
+        if (Mouse::isButtonPressed(Mouse::Right)) {
+            mouse_pos = Mouse::getPosition(i_window);
+            if (mouse_pos.x > 0 and mouse_pos.x < 600 and mouse_pos.y > 0 and mouse_pos.y < 600) {
+                nado = true;
+            }
+        }
+
+        i_window.clear(Color::Blue);
+        if (nado) i_window.draw(banan);
+        i_window.display();
+    }
+}
+
 int main(){
     SoundBuffer buffer;//крч в ближайших нескольких строках обитает подключение звука
     if (!buffer.loadFromFile("phonk.mp3")) return -1;
@@ -36,7 +62,6 @@ int main(){
     double y = 500;
     double len = 1;//задача переменной, которая впоследствие будет нужна для рассчёта скорости персонажа
     double movespeed = 7.0; //скорость героя
-    Vector2i mouse_position; //текущие координаты курсора
     Vector2i mouse_old; //координаты курсора кадра назад
     Vector2i viewcenter; //центр камеры (вид)
     viewcenter.x = razm.x / 2; //изначально в центре 
@@ -61,8 +86,8 @@ int main(){
         Event event;
         
         is_floor = true;
-        mouse_position = Mouse::getPosition(window); //смотрим, где курсор
-        is_mouse_in_window = mouse_position.x >= 0 and mouse_position.x <= razm.x and mouse_position.y >= 0 and mouse_position.y <= razm.y;
+        mouse_pos = Mouse::getPosition(window); //смотрим, где курсор
+        is_mouse_in_window = mouse_pos.x >= 0 and mouse_pos.x <= razm.x and mouse_pos.y >= 0 and mouse_pos.y <= razm.y;
         
         ////////////////////////////////////////////СОБЫТИЯ В ОКНЕ/////////////////////////////////////////////////////////////////////////////////////
         while (window.pollEvent(event)){
@@ -79,19 +104,23 @@ int main(){
         
         //std::cout << mouse_position.x << " " << mouse_position.y << "   " << x << " " << y << "\n";
 
-        if (sound.getStatus() == 0) sound.play();//не перестаём радовать сф-а смачными битами даже если они закончились
+        //if (sound.getStatus() == 0) sound.play();//не перестаём радовать сф-а смачными битами даже если они закончились
 
         //////////////////////////////////////////////ПЕРЕДВИЖЕНИЕ/////////////////////////////////////////////////////////////////////////////////////
         //len = sqrt(pow((mouse_position.x - x + dx), 2) + pow((mouse_position.y - y + dy), 2));
 
         if (Mouse::isButtonPressed(Mouse::Right) and is_mouse_in_window) {
-            len = sqrt(pow((mouse_position.x - x + dx), 2) + pow((mouse_position.y - y + dy), 2));
-            vx = (mouse_position.x - x + dx) / len;
-            vy = movespeed * (mouse_position.y - y + dy) / len;
+            len = sqrt(pow((mouse_pos.x - x + dx), 2) + pow((mouse_pos.y - y + dy), 2));
+            vx = (mouse_pos.x - x + dx) / len;
+            vy = movespeed * (mouse_pos.y - y + dy) / len;
             if (vy<=0) hero.setRotation(asin(vx) * 57.3);
             else hero.setRotation(180-asin(vx) * 57.3);
             vx *= movespeed;
         }//по теореме пифагора и подобиям задаём скорости по х и у, найдя синусы косинусы там...
+        else if (Keyboard::isKeyPressed(Keyboard::S) and is_mouse_in_window) {
+            vx = 0;
+            vy = 0;
+        }
 
         for (int i = 0; i < num_obj; i++) {
             if (borders[i][0] <= (x + vx) and borders[i][2] >= (x + vx) and borders[i][1] <= (y + vy) and borders[i][3] >= (y + vy)) {
@@ -109,24 +138,29 @@ int main(){
         else islkm = false;
 
         if (islkm and islkm_old) {
-            viewcenter.x = viewcenter.x - mouse_position.x + mouse_old.x;
-            viewcenter.y = viewcenter.y - mouse_position.y + mouse_old.y;
-            dx += (mouse_old.x - mouse_position.x);
-            dy += (mouse_old.y - mouse_position.y);
+            viewcenter.x = viewcenter.x - mouse_pos.x + mouse_old.x;
+            viewcenter.y = viewcenter.y - mouse_pos.y + mouse_old.y;
+            dx += (mouse_old.x - mouse_pos.x);
+            dy += (mouse_old.y - mouse_pos.y);
             view.setCenter(viewcenter.x, viewcenter.y);
         } //если левая кнопка мыши удерживается - двигаем камеру за курсором
 
-        mouse_old = mouse_position;
+        mouse_old = mouse_pos;
         
         hero.setPosition(x, y); //возможно возникает вопрос: а зачем задавать координаты, если можно 
         //использовать функцию .move, а я отвечу - да по фану, мне просто координаты нужны для 
         //расчётов выше, поэтому они есть.
 
         window.setView(view); //переводимся на вид с камеры
-        window.clear(Color::Blue); //чистим, чтобы не накладывались рисунки
+        window.clear(Color::Black); //чистим, чтобы не накладывались рисунки
         window.draw(map);
         window.draw(hero); //рисуем собсна героя
         window.display();//хз, так надо
+
+        if (Keyboard::isKeyPressed(Keyboard::I) and is_mouse_in_window) {
+            inventory();
+        }
+
     }
     return 0;
 }
